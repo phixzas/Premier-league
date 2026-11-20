@@ -1,0 +1,48 @@
+name: V9 Auto Retrain Monday 10am
+
+on:
+  schedule:
+    # 09:00 UTC = 10:00 AM WAT (Lagos)
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual run - press button to test now
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install packages
+        run: |
+          pip install pandas numpy requests
+
+      - name: Download latest Premier League data
+        run: |
+          mkdir -p Data
+          # 2627 na current season - your code use 2526, na old season
+          curl -L "https://www.football-data.co.uk/mmz4281/2627/E0.csv" -o Data/2627.csv
+          echo "Downloaded $(wc -l < Data/2627.csv) lines"
+          tail -3 Data/2627.csv
+
+      - name: Retrain V9 Complete
+        run: |
+          python train_v9_complete.py
+
+      - name: Save retrain log with time/date
+        run: |
+          echo "Retrained at: $(date)" >> logs/retrain_history.txt
+          ls -lh *.pkl
+
+      - name: Commit new model back to GitHub
+        run: |
+          git config --local user.email "auto@retrain.com"
+          git config --local user.name "V9 Auto Retrain"
+          git add attack.pkl defence.pkl league_avg.pkl processed_history.csv logs/
+          git commit -m "Auto retrain $(date +'%Y-%m-%d %H:%M') - Monday 10am" || echo "No changes"
+          git push
