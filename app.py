@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd, pickle, math, os, requests, subprocess
 from datetime import datetime, timedelta
+from pathlib import Path
 
 st.set_page_config(page_title="Premier League Predictor", layout="wide")
 st.title("⚽ Complete - Premier League Predictor")
@@ -32,14 +33,14 @@ def fix_name(name):
 # --- LOAD MODEL ---
 @st.cache_resource
 def load_model():
-    try:
-        attack = pickle.load(open('attack.pkl','rb'))
-        defence = pickle.load(open('defence.pkl','rb'))
-        league = pickle.load(open('league_avg.pkl','rb'))
-        return attack, defence, league
-    except Exception as e:
-        st.error(f"Model files not found: {e} - Run train_v9_complete.py first")
-        return {}, {}, {'home_avg': 1.53, 'away_avg': 1.20}
+    model_dir = Path(__file__).resolve().parent / "Notebook"
+    with (model_dir / "attack.pkl").open("rb") as model_file:
+        attack = pickle.load(model_file)
+    with (model_dir / "defence.pkl").open("rb") as model_file:
+        defence = pickle.load(model_file)
+    with (model_dir / "league_avg.pkl").open("rb") as model_file:
+        league = pickle.load(model_file)
+    return attack, defence, league
 
 attack, defence, league = load_model()
 LEAGUE_HOME = league.get('home_avg', 1.53)
