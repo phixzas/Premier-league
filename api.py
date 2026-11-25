@@ -3,10 +3,10 @@ import os
 import requests
 from fastapi import FastAPI, HTTPException
 from fastapi import Header
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from predictor import load_model, predict_game
-
 
 app = FastAPI(
     title="Premier League Predictor API",
@@ -14,6 +14,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Allow your website to call this API from the browser
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def require_formly_access(authorization: str | None, sport: str):
     if not authorization or not authorization.lower().startswith("bearer "):
@@ -44,11 +52,9 @@ def require_formly_access(authorization: str | None, sport: str):
     if not isinstance(access, dict) or access.get("active") is not True:
         raise HTTPException(status_code=403, detail="An active Football subscription is required.")
 
-
 class MatchRequest(BaseModel):
     home_team: str = Field(min_length=1, description="Home team name")
     away_team: str = Field(min_length=1, description="Away team name")
-
 
 class PredictionResponse(BaseModel):
     home_team: str
@@ -63,20 +69,24 @@ class PredictionResponse(BaseModel):
     most_likely_score: str
     most_likely_score_probability_pct: float
 
-
+# --- FIX 1: Health check works on BOTH /health and /api/health ---
+@app.get("/")
 @app.get("/health")
+@app.get("/api/health")
 def health():
     return {"status": "ok"}
 
-
+# --- FIX 2: Teams works on BOTH /teams and /api/teams ---
 @app.get("/teams", response_model=list[str])
+@app.get("/api/teams", response_model=list[str])
 def teams(authorization: str | None = Header(default=None)):
     require_formly_access(authorization, "Football")
     attack, _, _ = load_model()
     return sorted(attack)
 
-
+# --- FIX 3: Predict works on BOTH /predict and /api/predict ---
 @app.post("/predict", response_model=PredictionResponse)
+@app.post("/api/predict", response_model=PredictionResponse)
 def predict_match(match: MatchRequest, authorization: str | None = Header(default=None)):
     require_formly_access(authorization, "Football")
     home_input = match.home_team.strip()
