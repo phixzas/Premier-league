@@ -80,7 +80,7 @@ with tab1:
         c4, c5, c6 = st.columns(3)
         c4.metric("Over 2.5", f"{over:.1f}%")
         c5.metric("Under 2.5", f"{100-over:.1f}%")
-        c6.metric("Correct Score", f"{best_cs}", f"{cs_prob:.1f}% chance")
+        c6.metric("Correct Score", f"{best_cs}")
         # FIX: NO DUPLICATE SAVE - Check before showing button
         match_date_only = dt.split()[0]
         if is_already_saved(home, away, match_date_only):
